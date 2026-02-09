@@ -15,7 +15,7 @@ user_controller = UserController()
 # CONFIGURACIÓN DEL MICROSERVICIO EXTERNO (Node.js)
 # Pega aquí la URL que te dio Vercel para el servicio de ubicaciones
 # Ejemplo: "https://servicio-geo-tu-nombre.vercel.app/api/ubicaciones"
-NODE_SERVICE_URL = "AQUI_PEGA_TU_URL_DE_VERCEL_NODE_JS/api/ubicaciones" 
+NODE_SERVICE_URL = "https://proyecto-rc-jju7-mbe5fe4en-richcams-projects.vercel.app/api/ubicaciones" 
 # ---------------------------------------------------------
 
 @router.get("/locations")
