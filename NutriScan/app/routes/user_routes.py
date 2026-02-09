@@ -16,7 +16,7 @@ user_controller = UserController()
 # ---------------------------------------------------------
 # REEMPLAZA ESTO con la URL exacta de tu proyecto de Node.js en Vercel.
 # Debe terminar en /api/ubicaciones
-NODE_SERVICE_URL = "https://tu-servicio-node.vercel.app/api/ubicaciones" 
+NODE_SERVICE_URL = "https://proyecto-rc-jju7.vercel.app/api/ubicaciones" 
 
 @router.get("/locations")
 def get_external_locations():
