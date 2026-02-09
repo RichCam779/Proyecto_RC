@@ -12,18 +12,17 @@ class UserController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # 1. Insertamos en la tabla usuarios (INCLUYENDO TELEFONO Y UBICACIÓN)
+            # 1. Insertamos en la tabla usuarios (SIN TELEFONO)
             query = """
                 INSERT INTO usuarios 
-                (cedula, nombre_completo, email, telefono, genero, pais, departamento, ciudad, password_hash, id_rol) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                (cedula, nombre_completo, email, genero, pais, departamento, ciudad, password_hash, id_rol) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) 
                 RETURNING id_usuario
             """
             values = (
                 user.cedula, 
                 user.nombre_completo, 
                 user.email, 
-                user.telefono,      # Tu campo telefono
                 user.genero, 
                 user.pais,          # Nuevo
                 user.departamento,  # Nuevo
@@ -34,6 +33,13 @@ class UserController:
             
             cursor.execute(query, values)
             new_id = cursor.fetchone()[0]
+            
+            # 1.5 Insertar teléfono si existe
+            if user.telefono:
+                cursor.execute(
+                    "INSERT INTO telefonos (id_usuario, numero) VALUES (%s, %s)",
+                    (new_id, user.telefono)
+                )
             
             # 2. Creamos el perfil clínico vacío asociado
             cursor.execute("INSERT INTO perfiles_clinicos (id_usuario) VALUES (%s)", (new_id,))
@@ -55,13 +61,14 @@ class UserController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # Query incluyendo telefono y ubicación
+            # Query incluyendo telefono (desde tabla telefonos) y ubicación
             query = """
-                SELECT u.id_usuario, u.cedula, u.nombre_completo, u.email, u.telefono, u.genero, 
+                SELECT u.id_usuario, u.cedula, u.nombre_completo, u.email, t.numero, u.genero, 
                        u.pais, u.departamento, u.ciudad, r.nombre_rol, p.biotipo, u.estado
                 FROM usuarios u
                 JOIN roles r ON u.id_rol = r.id_rol
                 LEFT JOIN perfiles_clinicos p ON u.id_usuario = p.id_usuario
+                LEFT JOIN telefonos t ON u.id_usuario = t.id_usuario
                 WHERE u.estado = 'Activo'
             """
             cursor.execute(query)
@@ -74,7 +81,7 @@ class UserController:
                     'cedula': data[1], 
                     'nombre': data[2],
                     'email': data[3], 
-                    'telefono': data[4],    # Tu campo telefono
+                    'telefono': data[4],    # Ahora viene de la tabla telefonos
                     'genero': data[5], 
                     'pais': data[6],        # Nuevo
                     'departamento': data[7],# Nuevo
@@ -98,10 +105,10 @@ class UserController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # Update incluyendo telefono y ubicación
+            # Update tabla usuarios (sin telefono)
             query = """
                 UPDATE usuarios 
-                SET nombre_completo = %s, email = %s, telefono = %s, genero = %s, 
+                SET nombre_completo = %s, email = %s, genero = %s, 
                     pais = %s, departamento = %s, ciudad = %s, 
                     password_hash = %s, id_rol = %s
                 WHERE id_usuario = %s
@@ -109,7 +116,6 @@ class UserController:
             values = (
                 user.nombre_completo, 
                 user.email, 
-                user.telefono,      # Tu campo telefono
                 user.genero,
                 user.pais,          # Nuevo
                 user.departamento,  # Nuevo
@@ -120,6 +126,20 @@ class UserController:
             )
 
             cursor.execute(query, values)
+            
+            # Update o Insert tabla telefonos
+            if user.telefono:
+                # Intentamos actualizar primero
+                cursor.execute(
+                    "UPDATE telefonos SET numero = %s WHERE id_usuario = %s",
+                    (user.telefono, user.id)
+                )
+                # Si no se actualizó nada (no existía), insertamos
+                if cursor.rowcount == 0:
+                    cursor.execute(
+                        "INSERT INTO telefonos (id_usuario, numero) VALUES (%s, %s)",
+                        (user.id, user.telefono)
+                    )
             
             conn.commit()
             if cursor.rowcount == 0:

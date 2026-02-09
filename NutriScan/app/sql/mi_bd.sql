@@ -38,6 +38,16 @@ CREATE TABLE usuarios (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE telefono (
+    id_telefono SERIAL PRIMARY KEY,
+    id_usuario INT NOT NULL REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+    numero VARCHAR(20) NOT NULL,
+    tipo VARCHAR(20) DEFAULT 'Movil', -- Movil, Casa, Trabajo
+    estado VARCHAR(20) DEFAULT 'Activo',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE perfiles_clinicos (
     id_perfil SERIAL PRIMARY KEY,
     id_usuario INT NOT NULL UNIQUE REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
@@ -114,6 +124,11 @@ VALUES ((SELECT id_rol FROM roles WHERE nombre_rol = 'Paciente'), 1, TRUE, TRUE)
 INSERT INTO usuarios (cedula, nombre_completo, email, genero, pais, departamento, ciudad, password_hash, id_rol) VALUES
 ('1010', 'Dr. Carlos Mendoza', 'carlos@nutri.com', 'Masculino', 'Colombia', 'Antioquia', 'Medellín', 'hash123', (SELECT id_rol FROM roles WHERE nombre_rol = 'Nutricionista')),
 ('777888999', 'Ana García', 'ana@paciente.com', 'Femenino', 'Colombia', 'Atlántico', 'Barranquilla', 'hash456', (SELECT id_rol FROM roles WHERE nombre_rol = 'Paciente'));
+
+-- Teléfonos de prueba
+INSERT INTO telefonos (id_usuario, numero, tipo) VALUES 
+((SELECT id_usuario FROM usuarios WHERE cedula = '1010'), '3001234567', 'Móvil'),
+((SELECT id_usuario FROM usuarios WHERE cedula = '777888999'), '3109876543', 'Móvil');
 
 -- Perfil Clínico
 INSERT INTO perfiles_clinicos (id_usuario, edad, peso_kg, altura_cm, biotipo, confianza_ia, meta_calorica_diaria) 
