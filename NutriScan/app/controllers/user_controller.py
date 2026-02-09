@@ -1,9 +1,8 @@
 import psycopg2
 from fastapi import HTTPException
-# Agregamos 'app.' al inicio para que Vercel encuentre los módulos
+from fastapi.encoders import jsonable_encoder
 from app.config.db_config import get_db_connection
 from app.models.user_model import User 
-from fastapi.encoders import jsonable_encoder
 
 class UserController:
     
@@ -13,15 +12,30 @@ class UserController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # 1. Insertamos en la tabla usuarios
-            cursor.execute("""
-                INSERT INTO usuarios (cedula, nombre_completo, email, telefono, genero, pais, departamento, ciudad, password_hash, id_rol) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_usuario
-            """, (user.cedula, user.nombre_completo, user.email, user.telefono, user.genero, user.pais, user.departamento, user.ciudad, user.password_hash, user.id_rol))
+            # 1. Insertamos en la tabla usuarios (INCLUYENDO TELEFONO Y UBICACIÓN)
+            query = """
+                INSERT INTO usuarios 
+                (cedula, nombre_completo, email, telefono, genero, pais, departamento, ciudad, password_hash, id_rol) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                RETURNING id_usuario
+            """
+            values = (
+                user.cedula, 
+                user.nombre_completo, 
+                user.email, 
+                user.telefono,      # Tu campo telefono
+                user.genero, 
+                user.pais,          # Nuevo
+                user.departamento,  # Nuevo
+                user.ciudad,        # Nuevo
+                user.password_hash, 
+                user.id_rol
+            )
             
+            cursor.execute(query, values)
             new_id = cursor.fetchone()[0]
             
-            # 2. Creamos el perfil clínico vacío
+            # 2. Creamos el perfil clínico vacío asociado
             cursor.execute("INSERT INTO perfiles_clinicos (id_usuario) VALUES (%s)", (new_id,))
             
             conn.commit()
@@ -29,7 +43,7 @@ class UserController:
         
         except psycopg2.Error as err:
             if conn: conn.rollback()
-            if err.pgcode == '23505': # Violación de unicidad
+            if err.pgcode == '23505': # Código de error Postgres para duplicados
                 raise HTTPException(status_code=400, detail="Error: Ya existe un usuario con esa cédula o email.")
             raise HTTPException(status_code=500, detail=f"Error de base de datos: {str(err)}")
         finally:
@@ -40,8 +54,11 @@ class UserController:
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
+            
+            # Query incluyendo telefono y ubicación
             query = """
-                SELECT u.id_usuario, u.cedula, u.nombre_completo, u.email, u.telefono, u.genero, u.pais, u.departamento, u.ciudad, r.nombre_rol, p.biotipo, u.estado
+                SELECT u.id_usuario, u.cedula, u.nombre_completo, u.email, u.telefono, u.genero, 
+                       u.pais, u.departamento, u.ciudad, r.nombre_rol, p.biotipo, u.estado
                 FROM usuarios u
                 JOIN roles r ON u.id_rol = r.id_rol
                 LEFT JOIN perfiles_clinicos p ON u.id_usuario = p.id_usuario
@@ -53,16 +70,64 @@ class UserController:
             payload = []
             for data in result:
                 content = {
-                    'id': data[0], 'cedula': data[1], 'nombre': data[2],
-                    'email': data[3], 'telefono': data[4], 'genero': data[5],
-                    'pais': data[6], 'departamento': data[7], 'ciudad': data[8],
-                    'rol': data[9], 'biotipo': data[10], 'estado': data[11]
+                    'id': data[0], 
+                    'cedula': data[1], 
+                    'nombre': data[2],
+                    'email': data[3], 
+                    'telefono': data[4],    # Tu campo telefono
+                    'genero': data[5], 
+                    'pais': data[6],        # Nuevo
+                    'departamento': data[7],# Nuevo
+                    'ciudad': data[8],      # Nuevo
+                    'rol': data[9], 
+                    'biotipo': data[10], 
+                    'estado': data[11]
                 }
                 payload.append(content)
             
             return {"resultado": jsonable_encoder(payload)}
                 
         except psycopg2.Error as err:
+            raise HTTPException(status_code=500, detail=str(err))
+        finally:
+            if conn: conn.close()
+
+    def update_user(self, user: User):
+        conn = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Update incluyendo telefono y ubicación
+            query = """
+                UPDATE usuarios 
+                SET nombre_completo = %s, email = %s, telefono = %s, genero = %s, 
+                    pais = %s, departamento = %s, ciudad = %s, 
+                    password_hash = %s, id_rol = %s
+                WHERE id_usuario = %s
+            """
+            values = (
+                user.nombre_completo, 
+                user.email, 
+                user.telefono,      # Tu campo telefono
+                user.genero,
+                user.pais,          # Nuevo
+                user.departamento,  # Nuevo
+                user.ciudad,        # Nuevo
+                user.password_hash, 
+                user.id_rol, 
+                user.id
+            )
+
+            cursor.execute(query, values)
+            
+            conn.commit()
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            return {"resultado": "Usuario actualizado con éxito"}
+            
+        except psycopg2.Error as err:
+            if conn: conn.rollback()
             raise HTTPException(status_code=500, detail=str(err))
         finally:
             if conn: conn.close()
@@ -97,27 +162,6 @@ class UserController:
             """, (biotipo, confianza, user_id))
             conn.commit()
             return {"resultado": "Biotipo actualizado por IA"}
-        except psycopg2.Error as err:
-            if conn: conn.rollback()
-            raise HTTPException(status_code=500, detail=str(err))
-        finally:
-            if conn: conn.close()
-
-    def update_user(self, user: User):
-        conn = None
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE usuarios 
-                SET nombre_completo = %s, email = %s, telefono = %s, genero = %s, pais = %s, departamento = %s, ciudad = %s, password_hash = %s, id_rol = %s
-                WHERE id_usuario = %s
-            """, (user.nombre_completo, user.email, user.telefono, user.genero, user.pais, user.departamento, user.ciudad, user.password_hash, user.id_rol, user.id))
-            
-            conn.commit()
-            if cursor.rowcount == 0:
-                raise HTTPException(status_code=404, detail="Usuario no encontrado")
-            return {"resultado": "Usuario y Rol actualizados con éxito"}
         except psycopg2.Error as err:
             if conn: conn.rollback()
             raise HTTPException(status_code=500, detail=str(err))

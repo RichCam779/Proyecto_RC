@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-# Se agrega 'app.' antes de cada carpeta interna
+import requests  # Asegúrate de tener instalado: pip install requests
 from app.controllers.user_controller import UserController
 from app.models.user_model import User, BiotypeUpdate
 from typing import List
@@ -11,6 +11,29 @@ router = APIRouter(
 
 user_controller = UserController()
 
+# ---------------------------------------------------------
+# CONFIGURACIÓN DEL MICROSERVICIO EXTERNO (Node.js)
+# Pega aquí la URL que te dio Vercel para el servicio de ubicaciones
+# Ejemplo: "https://servicio-geo-tu-nombre.vercel.app/api/ubicaciones"
+NODE_SERVICE_URL = "AQUI_PEGA_TU_URL_DE_VERCEL_NODE_JS/api/ubicaciones" 
+# ---------------------------------------------------------
+
+@router.get("/locations")
+def get_locations():
+    """
+    Endpoint Proxy: Consulta el microservicio de Node.js 
+    y devuelve las ciudades disponibles al Frontend.
+    """
+    try:
+        response = requests.get(NODE_SERVICE_URL, timeout=5)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise HTTPException(status_code=502, detail="Error en el servicio de ubicaciones externo")
+    except Exception as e:
+        print(f"Error conectando con Node: {str(e)}")
+        raise HTTPException(status_code=503, detail="El servicio de ubicaciones no responde")
+
 @router.post("/", response_model=dict)
 def create_user(user: User):
     return user_controller.create_user(user)
@@ -21,7 +44,6 @@ def get_active_users():
 
 @router.put("/{user_id}", response_model=dict)
 def update_user(user_id: int, user: User):
-    # Asignamos el ID del path al objeto user para el controlador
     user.id = user_id
     return user_controller.update_user(user)
 
