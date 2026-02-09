@@ -6,7 +6,7 @@ class User(BaseModel):
     cedula: str
     nombre_completo: str
     email: EmailStr
-    telefono: Optional[str] = None
+    telefono: Optional[str] = None  # Agregado
     genero: Optional[str] = None
     pais: Optional[str] = None
     departamento: Optional[str] = None
