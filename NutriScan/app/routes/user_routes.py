@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-import requests  # Asegúrate de tener instalado: pip install requests
+import requests  # Importante: Asegúrate de que 'requests' esté en requirements.txt
 from app.controllers.user_controller import UserController
 from app.models.user_model import User, BiotypeUpdate
 from typing import List
@@ -12,27 +12,45 @@ router = APIRouter(
 user_controller = UserController()
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DEL MICROSERVICIO EXTERNO (Node.js)
-# Pega aquí la URL que te dio Vercel para el servicio de ubicaciones
-# Ejemplo: "https://servicio-geo-tu-nombre.vercel.app/api/ubicaciones"
-NODE_SERVICE_URL ="https://proyecto-rc-jju7-mbe5fe4en-richcams-projects.vercel.app/api/ubicaciones" 
+# CONFIGURACIÓN DEL MICROSERVICIO (El Puente)
 # ---------------------------------------------------------
+# REEMPLAZA ESTO con la URL exacta de tu proyecto de Node.js en Vercel.
+# Debe terminar en /api/ubicaciones
+NODE_SERVICE_URL = "https://tu-servicio-node.vercel.app/api/ubicaciones" 
 
 @router.get("/locations")
-def get_locations():
+def get_external_locations():
     """
-    Endpoint Proxy: Consulta el microservicio de Node.js 
-    y devuelve las ciudades disponibles al Frontend.
+    ENDPOINT PROXY:
+    1. Recibe la petición del Frontend.
+    2. Llama al Microservicio de Node.js.
+    3. Devuelve la lista de ciudades.
     """
     try:
-        response = requests.get(NODE_SERVICE_URL, timeout=5)
+        # Hacemos la petición a Node.js con un tiempo de espera de 10 segundos
+        response = requests.get(NODE_SERVICE_URL, timeout=10)
+        
+        # Si Node.js responde bien (Código 200)
         if response.status_code == 200:
             return response.json()
         else:
-            raise HTTPException(status_code=502, detail="Error en el servicio de ubicaciones externo")
+            # Si Node.js devuelve error (ej: 404 o 500)
+            raise HTTPException(
+                status_code=response.status_code, 
+                detail="El servicio de ubicaciones devolvió un error."
+            )
+            
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="El servicio de ubicaciones tardó demasiado en responder.")
+    except requests.exceptions.ConnectionError:
+        raise HTTPException(status_code=502, detail="No se pudo conectar con el servicio de ubicaciones.")
     except Exception as e:
-        print(f"Error conectando con Node: {str(e)}")
-        raise HTTPException(status_code=503, detail="El servicio de ubicaciones no responde")
+        raise HTTPException(status_code=500, detail=f"Error interno del proxy: {str(e)}")
+
+
+# ---------------------------------------------------------
+# RUTAS NORMALES DE USUARIO (CRUD)
+# ---------------------------------------------------------
 
 @router.post("/", response_model=dict)
 def create_user(user: User):
@@ -44,6 +62,7 @@ def get_active_users():
 
 @router.put("/{user_id}", response_model=dict)
 def update_user(user_id: int, user: User):
+    # Asignamos el ID del path al objeto user para el controlador
     user.id = user_id
     return user_controller.update_user(user)
 
