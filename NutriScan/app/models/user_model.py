@@ -13,10 +13,11 @@ class User(BaseModel):
     genero: str
     
     # UBICACIÓN:
-    # IMPORTANTE: Ya no pedimos pais/depto/ciudad como texto.
-    # El Frontend debe enviar el ID de la ciudad seleccionada.
-    id_ciudad: int 
-    
+    # Ajustado para coincidir con la base de datos actual (que usa texto)
+    pais: str
+    departamento: str
+    ciudad: str
+    # id_ciudad: int  <-- Deshabilitado hasta que la BD tenga la tabla ciudades    
     # Contacto y Seguridad
     telefono: Optional[str] = None
     password_hash: str

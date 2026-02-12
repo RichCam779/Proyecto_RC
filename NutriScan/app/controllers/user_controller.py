@@ -12,19 +12,21 @@ class UserController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # CORRECCIÓN: Insertamos id_ciudad en lugar de los textos de ubicación
+            # CORRECCIÓN: Usamos textos según la BD actual
             query = """
                 INSERT INTO usuarios 
-                (cedula, nombre_completo, email, genero, id_ciudad, password_hash, id_rol) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s) 
+                (cedula, nombre_completo, email, genero, pais, departamento, ciudad, password_hash, id_rol) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) 
                 RETURNING id_usuario
             """
             values = (
                 user.cedula, 
                 user.nombre_completo, 
                 user.email, 
-                user.genero, 
-                user.id_ciudad,   # <--- AQUÍ USAMOS EL ID, NO EL NOMBRE
+                user.genero,
+                user.pais,
+                user.departamento,
+                user.ciudad,
                 user.password_hash, 
                 user.id_rol
             )
@@ -57,7 +59,7 @@ class UserController:
             cursor = conn.cursor()
             
             # CORRECCIÓN: 
-            # 1. Joins para traer nombres de ubicación.
+            # 1. Sin Joins de ubicación (están en la tabla usuarios).
             # 2. Uso de created_at y updated_at (Inglés).
             query = """
                 SELECT DISTINCT ON (u.id_usuario) 
@@ -67,22 +69,17 @@ class UserController:
                     u.email, 
                     t.numero AS telefono, 
                     u.genero, 
-                    p.nombre AS pais,          -- Traído por JOIN
-                    d.nombre AS departamento,  -- Traído por JOIN
-                    c.nombre AS ciudad,        -- Traído por JOIN
+                    u.pais, 
+                    u.departamento, 
+                    u.ciudad, 
                     r.nombre_rol, 
                     pc.biotipo, 
                     u.estado, 
-                    u.created_at,   -- <--- CORREGIDO (Inglés)
-                    u.updated_at    -- <--- CORREGIDO (Inglés)
+                    u.created_at
                 FROM usuarios u
                 JOIN roles r ON u.id_rol = r.id_rol
                 LEFT JOIN perfiles_clinicos pc ON u.id_usuario = pc.id_usuario
                 LEFT JOIN telefono t ON u.id_usuario = t.id_usuario AND t.estado = 'Activo'
-                -- JOINS DE UBICACIÓN
-                LEFT JOIN ciudades c ON u.id_ciudad = c.id_ciudad
-                LEFT JOIN departamentos d ON c.id_departamento = d.id_departamento
-                LEFT JOIN paises p ON d.id_pais = p.id_pais
                 WHERE u.estado = 'Activo'
             """
             cursor.execute(query)
@@ -103,8 +100,7 @@ class UserController:
                     'rol': data[9], 
                     'biotipo': data[10], 
                     'estado': data[11],
-                    'created_at': data[12],  # <--- CORREGIDO
-                    'updated_at': data[13]   # <--- CORREGIDO
+                    'created_at': data[12]
                 }
                 payload.append(content)
             
@@ -121,11 +117,11 @@ class UserController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # CORRECCIÓN: Actualizamos id_ciudad, NO los textos
+            # CORRECCIÓN: Actualizamos textos, no IDs
             query = """
                 UPDATE usuarios 
                 SET nombre_completo = %s, email = %s, genero = %s, 
-                    id_ciudad = %s,       -- <--- AQUÍ USAMOS EL ID
+                    pais = %s, departamento = %s, ciudad = %s,
                     password_hash = %s, id_rol = %s
                 WHERE id_usuario = %s
             """
@@ -133,7 +129,9 @@ class UserController:
                 user.nombre_completo, 
                 user.email, 
                 user.genero,
-                user.id_ciudad,   # Usamos el ID
+                user.pais,
+                user.departamento,
+                user.ciudad,
                 user.password_hash, 
                 user.id_rol, 
                 user.id
