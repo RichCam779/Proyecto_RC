@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 # Ajustamos la importación para que funcione desde la carpeta 'app'
-from app.routes.user_routes import router as user_router
-
+from .routes.user_routes import router as user_router
 app = FastAPI(title="NutriScan API")
 
 # Configuramos los orígenes para permitir tu entorno local y el futuro despliegue
