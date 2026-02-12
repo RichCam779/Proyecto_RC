@@ -59,12 +59,10 @@ class UserController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # Query actualizado: Traemos telefono de la tabla separada
-            # Usamos un DISTINCT ON o un GROUP BY simple para evitar duplicados si tuviera multiples telefonos,
-            # pero asumiremos el primero encontrado para mantener el diseño simple.
+            # Query actualizado: Traemos fechas estandarizadas
             query = """
                 SELECT DISTINCT ON (u.id_usuario) u.id_usuario, u.cedula, u.nombre_completo, u.email, t.numero, u.genero, 
-                       u.pais, u.departamento, u.ciudad, r.nombre_rol, p.biotipo, u.estado
+                       u.pais, u.departamento, u.ciudad, r.nombre_rol, p.biotipo, u.estado, u.crear, u.actualizar
                 FROM usuarios u
                 JOIN roles r ON u.id_rol = r.id_rol
                 LEFT JOIN perfiles_clinicos p ON u.id_usuario = p.id_usuario
@@ -81,14 +79,16 @@ class UserController:
                     'cedula': data[1], 
                     'nombre': data[2],
                     'email': data[3], 
-                    'telefono': data[4],    # Índice correcto para teléfono
+                    'telefono': data[4],
                     'genero': data[5], 
-                    'pais': data[6],        # Nuevo
-                    'departamento': data[7],# Nuevo
-                    'ciudad': data[8],      # Nuevo
+                    'pais': data[6],
+                    'departamento': data[7],
+                    'ciudad': data[8],
                     'rol': data[9], 
                     'biotipo': data[10], 
-                    'estado': data[11]
+                    'estado': data[11],
+                    'crear': data[12],      # Nuevo campo estandarizado
+                    'actualizar': data[13]  # Nuevo campo estandarizado
                 }
                 payload.append(content)
             
