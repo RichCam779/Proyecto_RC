@@ -1,7 +1,6 @@
 import psycopg2
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
-# Respetamos tu importación original de configuración
 from app.config.db_config import get_db_connection
 from app.models.user_model import User 
 
@@ -13,11 +12,11 @@ class UserController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # 1. Insertamos en la tabla usuarios (SIN teléfono)
+            # CORRECCIÓN: Insertamos id_ciudad en lugar de los textos de ubicación
             query = """
                 INSERT INTO usuarios 
-                (cedula, nombre_completo, email, genero, pais, departamento, ciudad, password_hash, id_rol) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                (cedula, nombre_completo, email, genero, id_ciudad, password_hash, id_rol) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s) 
                 RETURNING id_usuario
             """
             values = (
@@ -25,9 +24,7 @@ class UserController:
                 user.nombre_completo, 
                 user.email, 
                 user.genero, 
-                user.pais,          # Nuevo
-                user.departamento,  # Nuevo
-                user.ciudad,        # Nuevo
+                user.id_ciudad,   # <--- AQUÍ USAMOS EL ID, NO EL NOMBRE
                 user.password_hash, 
                 user.id_rol
             )
@@ -35,11 +32,11 @@ class UserController:
             cursor.execute(query, values)
             new_id = cursor.fetchone()[0]
 
-            # 1.5 Insertamos el teléfono si existe
+            # Insertamos el teléfono si existe (Tabla separada)
             if user.telefono:
                 cursor.execute("INSERT INTO telefono (id_usuario, numero, tipo) VALUES (%s, %s, 'Movil')", (new_id, user.telefono))
             
-            # 2. Creamos el perfil clínico vacío
+            # Creamos el perfil clínico vacío
             cursor.execute("INSERT INTO perfiles_clinicos (id_usuario) VALUES (%s)", (new_id,))
             
             conn.commit()
@@ -47,7 +44,7 @@ class UserController:
         
         except psycopg2.Error as err:
             if conn: conn.rollback()
-            if err.pgcode == '23505': # Código de error Postgres para duplicados
+            if err.pgcode == '23505': # Duplicados
                 raise HTTPException(status_code=400, detail="Error: Ya existe un usuario con esa cédula o email.")
             raise HTTPException(status_code=500, detail=f"Error de base de datos: {str(err)}")
         finally:
@@ -59,14 +56,33 @@ class UserController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # Query actualizado: Traemos fechas estandarizadas
+            # CORRECCIÓN: 
+            # 1. Joins para traer nombres de ubicación.
+            # 2. Uso de created_at y updated_at (Inglés).
             query = """
-                SELECT DISTINCT ON (u.id_usuario) u.id_usuario, u.cedula, u.nombre_completo, u.email, t.numero, u.genero, 
-                       u.pais, u.departamento, u.ciudad, r.nombre_rol, p.biotipo, u.estado, u.crear, u.actualizar
+                SELECT DISTINCT ON (u.id_usuario) 
+                    u.id_usuario, 
+                    u.cedula, 
+                    u.nombre_completo, 
+                    u.email, 
+                    t.numero AS telefono, 
+                    u.genero, 
+                    p.nombre AS pais,          -- Traído por JOIN
+                    d.nombre AS departamento,  -- Traído por JOIN
+                    c.nombre AS ciudad,        -- Traído por JOIN
+                    r.nombre_rol, 
+                    pc.biotipo, 
+                    u.estado, 
+                    u.created_at,   -- <--- CORREGIDO (Inglés)
+                    u.updated_at    -- <--- CORREGIDO (Inglés)
                 FROM usuarios u
                 JOIN roles r ON u.id_rol = r.id_rol
-                LEFT JOIN perfiles_clinicos p ON u.id_usuario = p.id_usuario
+                LEFT JOIN perfiles_clinicos pc ON u.id_usuario = pc.id_usuario
                 LEFT JOIN telefono t ON u.id_usuario = t.id_usuario AND t.estado = 'Activo'
+                -- JOINS DE UBICACIÓN
+                LEFT JOIN ciudades c ON u.id_ciudad = c.id_ciudad
+                LEFT JOIN departamentos d ON c.id_departamento = d.id_departamento
+                LEFT JOIN paises p ON d.id_pais = p.id_pais
                 WHERE u.estado = 'Activo'
             """
             cursor.execute(query)
@@ -79,16 +95,16 @@ class UserController:
                     'cedula': data[1], 
                     'nombre': data[2],
                     'email': data[3], 
-                    'telefono': data[4],
+                    'telefono': data[4] if data[4] else "Sin registro",
                     'genero': data[5], 
-                    'pais': data[6],
-                    'departamento': data[7],
-                    'ciudad': data[8],
+                    'pais': data[6] if data[6] else "No definido",
+                    'departamento': data[7] if data[7] else "No definido",
+                    'ciudad': data[8] if data[8] else "No definido",
                     'rol': data[9], 
                     'biotipo': data[10], 
                     'estado': data[11],
-                    'crear': data[12],      # Nuevo campo estandarizado
-                    'actualizar': data[13]  # Nuevo campo estandarizado
+                    'created_at': data[12],  # <--- CORREGIDO
+                    'updated_at': data[13]   # <--- CORREGIDO
                 }
                 payload.append(content)
             
@@ -105,11 +121,11 @@ class UserController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # Update usuarios (sin telefono)
+            # CORRECCIÓN: Actualizamos id_ciudad, NO los textos
             query = """
                 UPDATE usuarios 
                 SET nombre_completo = %s, email = %s, genero = %s, 
-                    pais = %s, departamento = %s, ciudad = %s, 
+                    id_ciudad = %s,       -- <--- AQUÍ USAMOS EL ID
                     password_hash = %s, id_rol = %s
                 WHERE id_usuario = %s
             """
@@ -117,9 +133,7 @@ class UserController:
                 user.nombre_completo, 
                 user.email, 
                 user.genero,
-                user.pais,          # Nuevo
-                user.departamento,  # Nuevo
-                user.ciudad,        # Nuevo
+                user.id_ciudad,   # Usamos el ID
                 user.password_hash, 
                 user.id_rol, 
                 user.id
@@ -129,7 +143,6 @@ class UserController:
 
             # Manejo del teléfono
             if user.telefono:
-                # Verificamos si ya existe un teléfono para este usuario
                 cursor.execute("SELECT id_telefono FROM telefono WHERE id_usuario = %s", (user.id,))
                 existing_phone = cursor.fetchone()
                 
@@ -139,11 +152,6 @@ class UserController:
                     cursor.execute("INSERT INTO telefono (id_usuario, numero, tipo) VALUES (%s, %s, 'Movil')", (user.id, user.telefono))
             
             conn.commit()
-            if cursor.rowcount == 0 and not user.telefono: # Si no se actualizó usuario y no se tocó teléfono... (aproximación)
-                 # Nota: rowcount del update usuarios podría ser 0 si los datos son iguales, pero retornamos éxito igual.
-                 # El chequeo original era para ver si el ID existía.
-                 pass
-                 
             return {"resultado": "Usuario actualizado con éxito"}
             
         except psycopg2.Error as err:
