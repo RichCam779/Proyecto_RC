@@ -71,22 +71,32 @@ async def verify_token(request: Request) -> TokenData:
     if not auth_header:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No se proporcionó token de autenticación",
+            detail="No se proporcionó token de autenticación. Use: Authorization: Bearer {token}",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
     try:
-        scheme, token = auth_header.split()
-        if scheme.lower() != "bearer":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Esquema de autenticación inválido",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-    except ValueError:
+        # Intenta separar "Bearer token"
+        parts = auth_header.split()
+        
+        if len(parts) == 2:
+            scheme, token = parts
+            if scheme.lower() != "bearer":
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Esquema de autenticación inválido. Use: Bearer {token}",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+        elif len(parts) == 1:
+            # Si solo hay una parte, asumimos que es el token sin "Bearer"
+            token = parts[0]
+        else:
+            raise ValueError("Formato inválido")
+            
+    except (ValueError, IndexError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Formato de header Authorization inválido",
+            detail="Formato de header Authorization inválido. Use: Authorization: Bearer {token}",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -94,17 +104,18 @@ async def verify_token(request: Request) -> TokenData:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: int = payload.get("sub")
         email: str = payload.get("email")
+        
         if user_id is None or email is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="No se pudo validar el token",
+                detail="Token inválido: datos de usuario faltantes",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return TokenData(user_id=user_id, email=email)
-    except JWTError:
+    except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No se pudo validar el token",
+            detail=f"No se pudo validar el token: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
