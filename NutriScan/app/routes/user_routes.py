@@ -62,10 +62,18 @@ async def create_user(user: User, request: Request):
     return user_controller.create_user(user)
 
 @router.get("/", response_model=dict)
-def get_active_users():
+async def get_active_users(request: Request):
     """
-    Obtener usuarios activos. Endpoint PÚBLICO (sin autenticación).
+    Obtener usuarios activos. Requiere autenticación JWT.
+    
+    **Pasos:**
+    1. POST /login con email y password
+    2. Copia el token del campo "access"
+    3. En Swagger: click en Authorize (arriba a la derecha)
+    4. Pega el token sin el prefijo "Bearer"
+    5. Luego haz GET /users/
     """
+    current_user = await verify_token(request)
     return user_controller.get_active_users()
 
 @router.put("/{user_id}", response_model=dict)
