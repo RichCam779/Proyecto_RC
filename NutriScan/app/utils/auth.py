@@ -39,8 +39,14 @@ class LoginRequest(BaseModel):
 
 # Funciones de utilidad
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifica si la contraseña coincide con el hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verifica si la contraseña coincide con el hash o con texto plano (fallback temporal)"""
+    try:
+        # Intenta verificar como hash bcrypt
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception:
+        # Si falla, permite contraseñas en texto plano (fallback temporal para migracion)
+        # IMPORTANTE: Esto es solo temporal. Migrar todos los passwords a bcrypt
+        return plain_password == hashed_password
 
 def get_password_hash(password: str) -> str:
     """Genera el hash de una contraseña"""
