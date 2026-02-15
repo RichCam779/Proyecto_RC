@@ -29,6 +29,10 @@ class TokenResponse(BaseModel):
     user_id: int
     email: str
 
+class SimpleTokenResponse(BaseModel):
+    """Respuesta simple de autenticación con solo el token"""
+    access: str
+
 class LoginRequest(BaseModel):
     email: str
     password: str

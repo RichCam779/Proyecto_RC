@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 # Ajustamos la importación para que funcione desde la carpeta 'app'
 from .routes.user_routes import router as user_router
-from .utils.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from .utils.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, SimpleTokenResponse
 from .controllers.user_controller import UserController
-from .utils.auth import LoginRequest, TokenResponse
+from .utils.auth import LoginRequest
 from datetime import timedelta
 
 app = FastAPI(title="NutriScan API")
@@ -38,7 +39,7 @@ def home():
         "docs": "/docs"
     }
 
-@app.post("/auth/login", response_model=TokenResponse)
+@app.post("/login", response_model=SimpleTokenResponse)
 def login(credentials: LoginRequest):
     """
     Endpoint de login que autentica al usuario y retorna un token JWT.
@@ -48,10 +49,7 @@ def login(credentials: LoginRequest):
     - password: Contraseña del usuario
     
     **Retorna:**
-    - access_token: Token JWT válido por 60 minutos
-    - token_type: "bearer"
-    - user_id: ID del usuario autenticado
-    - email: Email del usuario
+    - access: Token JWT válido por 60 minutos
     """
     user = user_controller.authenticate_user(credentials.email, credentials.password)
     
@@ -62,11 +60,31 @@ def login(credentials: LoginRequest):
     )
     
     return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user_id": user["id"],
-        "email": user["email"]
+        "access": access_token
     }
+
+# Configurar OpenAPI con seguridad Bearer para Swagger
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="NutriScan API",
+        version="1.0.0",
+        description="API de NutriScan con autenticación JWT",
+        routes=app.routes,
+    )
+    openapi_schema["components"]["securitySchemes"] = {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    }
+    openapi_schema["security"] = [{"bearerAuth": []}]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 # Vercel no ejecuta el bloque __main__, usa su propio servidor (uvicorn)
 # pero lo dejamos para que sigas pudiendo ejecutarlo localmente.
