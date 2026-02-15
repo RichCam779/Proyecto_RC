@@ -62,11 +62,10 @@ async def create_user(user: User, request: Request):
     return user_controller.create_user(user)
 
 @router.get("/", response_model=dict)
-async def get_active_users(request: Request):
+def get_active_users():
     """
-    Obtener usuarios activos. Requiere autenticación JWT.
+    Obtener usuarios activos. Endpoint PÚBLICO (sin autenticación).
     """
-    current_user = await verify_token(request)
     return user_controller.get_active_users()
 
 @router.put("/{user_id}", response_model=dict)
