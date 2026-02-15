@@ -1,5 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request, Security
-from fastapi.security import HTTPBearer, HTTPAuthCredential
+from fastapi import APIRouter, HTTPException, Request
 import requests  # Importante: Asegúrate de que 'requests' esté en requirements.txt
 from app.controllers.user_controller import UserController
 from app.models.user_model import User, BiotypeUpdate
@@ -12,7 +11,6 @@ router = APIRouter(
 )
 
 user_controller = UserController()
-security = HTTPBearer()
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DEL MICROSERVICIO (El Puente)
