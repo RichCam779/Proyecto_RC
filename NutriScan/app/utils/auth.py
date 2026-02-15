@@ -4,8 +4,8 @@ import os
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi import HTTPException, status
+from starlette.requests import Request
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,9 +17,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # Contexto de hashing de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# Esquema de seguridad
-security = HTTPBearer()
 
 # Modelos Pydantic para autenticación
 class TokenData(BaseModel):
@@ -57,9 +54,32 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def verify_token(credentials: HTTPAuthCredentials = Depends(security)) -> TokenData:
-    """Verifica el token JWT y retorna los datos del usuario"""
-    token = credentials.credentials
+async def verify_token(request: Request) -> TokenData:
+    """Verifica el token JWT desde el header Authorization"""
+    auth_header = request.headers.get("Authorization")
+    
+    if not auth_header:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No se proporcionó token de autenticación",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    try:
+        scheme, token = auth_header.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Esquema de autenticación inválido",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Formato de header Authorization inválido",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: int = payload.get("sub")
@@ -77,3 +97,4 @@ async def verify_token(credentials: HTTPAuthCredentials = Depends(security)) -> 
             detail="No se pudo validar el token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
