@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 import requests  # Importante: Asegúrate de que 'requests' esté en requirements.txt
 from app.controllers.user_controller import UserController
 from app.models.user_model import User, BiotypeUpdate
+from app.utils.auth import verify_token, TokenData
 from typing import List
 
 router = APIRouter(
@@ -53,23 +54,38 @@ def get_external_locations():
 # ---------------------------------------------------------
 
 @router.post("/", response_model=dict)
-def create_user(user: User):
+def create_user(user: User, current_user: TokenData = Depends(verify_token)):
+    """
+    Crear nuevo usuario. Requiere autenticación JWT.
+    """
     return user_controller.create_user(user)
 
 @router.get("/", response_model=dict)
-def get_active_users():
+def get_active_users(current_user: TokenData = Depends(verify_token)):
+    """
+    Obtener usuarios activos. Requiere autenticación JWT.
+    """
     return user_controller.get_active_users()
 
 @router.put("/{user_id}", response_model=dict)
-def update_user(user_id: int, user: User):
+def update_user(user_id: int, user: User, current_user: TokenData = Depends(verify_token)):
+    """
+    Actualizar usuario. Requiere autenticación JWT.
+    """
     # Asignamos el ID del path al objeto user para el controlador
     user.id = user_id
     return user_controller.update_user(user)
 
 @router.delete("/{user_id}", response_model=dict)
-def deactivate_user(user_id: int):
+def deactivate_user(user_id: int, current_user: TokenData = Depends(verify_token)):
+    """
+    Desactivar usuario. Requiere autenticación JWT.
+    """
     return user_controller.deactivate_user(user_id)
 
 @router.put("/{user_id}/biotype")
-def update_biotype(user_id: int, data: BiotypeUpdate): 
+def update_biotype(user_id: int, data: BiotypeUpdate, current_user: TokenData = Depends(verify_token)): 
+    """
+    Actualizar biotipo del usuario. Requiere autenticación JWT.
+    """
     return user_controller.update_biotype(user_id, data.biotipo, data.confianza_ia)

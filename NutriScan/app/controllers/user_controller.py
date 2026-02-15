@@ -2,7 +2,8 @@ import psycopg2
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from app.config.db_config import get_db_connection
-from app.models.user_model import User 
+from app.models.user_model import User
+from app.utils.auth import verify_password
 
 class UserController:
     
@@ -191,5 +192,40 @@ class UserController:
         except psycopg2.Error as err:
             if conn: conn.rollback()
             raise HTTPException(status_code=500, detail=str(err))
+        finally:
+            if conn: conn.close()
+
+    def authenticate_user(self, email: str, password: str):
+        """Autentica un usuario con email y contraseña"""
+        conn = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT id_usuario, email, password_hash, nombre_completo, id_rol, estado
+                FROM usuarios
+                WHERE email = %s AND estado = 'Activo'
+            """
+            cursor.execute(query, (email,))
+            result = cursor.fetchone()
+            
+            if not result:
+                raise HTTPException(status_code=401, detail="Credenciales inválidas")
+            
+            user_id, user_email, hashed_password, nombre, rol, estado = result
+            
+            # Verifica la contraseña
+            if not verify_password(password, hashed_password):
+                raise HTTPException(status_code=401, detail="Credenciales inválidas")
+            
+            return {
+                "id": user_id,
+                "email": user_email,
+                "nombre": nombre,
+                "id_rol": rol
+            }
+        except psycopg2.Error as err:
+            raise HTTPException(status_code=500, detail=f"Error de base de datos: {str(err)}")
         finally:
             if conn: conn.close()
