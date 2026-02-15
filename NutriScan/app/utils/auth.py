@@ -102,15 +102,26 @@ async def verify_token(request: Request) -> TokenData:
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("sub")
+        user_id_str: str = payload.get("sub")
         email: str = payload.get("email")
         
-        if user_id is None or email is None:
+        if user_id_str is None or email is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token inválido: datos de usuario faltantes",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        
+        # Convierte user_id de string a int
+        try:
+            user_id = int(user_id_str)
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido: ID de usuario malformado",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
         return TokenData(user_id=user_id, email=email)
     except JWTError as e:
         raise HTTPException(
