@@ -5,15 +5,16 @@ from app.config.db_config import get_db_connection
 from app.models.user_model import User
 from app.utils.auth import verify_password
 
+# Controlador de usuarios
 class UserController:
     
+    # Crear usuario y perfil clínico
     def create_user(self, user: User):   
         conn = None
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # CORRECCIÓN: Usamos textos según la BD actual
             query = """
                 INSERT INTO usuarios 
                 (cedula, nombre_completo, email, genero, pais, departamento, ciudad, password_hash, id_rol) 
@@ -35,11 +36,11 @@ class UserController:
             cursor.execute(query, values)
             new_id = cursor.fetchone()[0]
 
-            # Insertamos el teléfono si existe (Tabla separada)
+            # Insertar teléfono
             if user.telefono:
                 cursor.execute("INSERT INTO telefono (id_usuario, numero, tipo) VALUES (%s, %s, 'Movil')", (new_id, user.telefono))
             
-            # Creamos el perfil clínico vacío
+            # Crear perfil clínico vacío
             cursor.execute("INSERT INTO perfiles_clinicos (id_usuario) VALUES (%s)", (new_id,))
             
             conn.commit()
@@ -47,21 +48,19 @@ class UserController:
         
         except psycopg2.Error as err:
             if conn: conn.rollback()
-            if err.pgcode == '23505': # Duplicados
+            if err.pgcode == '23505':
                 raise HTTPException(status_code=400, detail="Error: Ya existe un usuario con esa cédula o email.")
             raise HTTPException(status_code=500, detail=f"Error de base de datos: {str(err)}")
         finally:
             if conn: conn.close()
 
+    # Obtener lista de usuarios activos
     def get_active_users(self):
         conn = None
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # CORRECCIÓN: 
-            # 1. Sin Joins de ubicación (están en la tabla usuarios).
-            # 2. Uso de created_at y updated_at (Inglés).
             query = """
                 SELECT DISTINCT ON (u.id_usuario) 
                     u.id_usuario, 
@@ -112,13 +111,13 @@ class UserController:
         finally:
             if conn: conn.close()
 
+    # Actualizar datos de usuario
     def update_user(self, user: User):
         conn = None
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # CORRECCIÓN: Actualizamos textos, no IDs
             query = """
                 UPDATE usuarios 
                 SET nombre_completo = %s, email = %s, genero = %s, 
@@ -140,7 +139,7 @@ class UserController:
 
             cursor.execute(query, values)
 
-            # Manejo del teléfono
+            # Actualizar o insertar teléfono
             if user.telefono:
                 cursor.execute("SELECT id_telefono FROM telefono WHERE id_usuario = %s", (user.id,))
                 existing_phone = cursor.fetchone()
@@ -159,6 +158,7 @@ class UserController:
         finally:
             if conn: conn.close()
 
+    # Desactivar cuenta de usuario
     def deactivate_user(self, user_id: int):
         conn = None
         try:
@@ -177,6 +177,7 @@ class UserController:
         finally:
             if conn: conn.close()
 
+    # Actualizar biotipo del perfil clínico
     def update_biotype(self, user_id: int, biotipo: str, confianza: float):
         conn = None
         try:
@@ -195,8 +196,8 @@ class UserController:
         finally:
             if conn: conn.close()
 
+    # Autenticar usuario por email y contraseña
     def authenticate_user(self, email: str, password: str):
-        """Autentica un usuario con email y contraseña"""
         conn = None
         try:
             conn = get_db_connection()
@@ -215,7 +216,6 @@ class UserController:
             
             user_id, user_email, hashed_password, nombre, rol, estado = result
             
-            # Verifica la contraseña
             if not verify_password(password, hashed_password):
                 raise HTTPException(status_code=401, detail="Credenciales inválidas")
             

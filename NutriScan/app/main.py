@@ -1,21 +1,21 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-# Ajustamos la importación para que funcione desde la carpeta 'app'
 from .routes.user_routes import router as user_router
 from .utils.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, SimpleTokenResponse
 from .controllers.user_controller import UserController
 from .utils.auth import LoginRequest
 from datetime import timedelta
 
+# Configuración de la API
 app = FastAPI(title="NutriScan API")
 
-# Configuramos los orígenes para permitir tu entorno local y el futuro despliegue
+# Configuración de CORS
 origins = [
     "http://localhost",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "*"  # Permite todos los orígenes temporalmente para facilitar el testeo en Vercel
+    "*"
 ]
 
 app.add_middleware(
@@ -26,10 +26,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registro de rutas
+# Rutas de usuario
 app.include_router(user_router)
 
-# Instancia del controlador
+# Controlador de usuarios
 user_controller = UserController()
 
 @app.get("/")
@@ -39,18 +39,9 @@ def home():
         "docs": "/docs"
     }
 
+# Endpoint de login
 @app.post("/login", response_model=SimpleTokenResponse)
 def login(credentials: LoginRequest):
-    """
-    Endpoint de login que autentica al usuario y retorna un token JWT.
-    
-    **Parámetros:**
-    - email: Email del usuario
-    - password: Contraseña del usuario
-    
-    **Retorna:**
-    - access: Token JWT válido por 60 minutos
-    """
     user = user_controller.authenticate_user(credentials.email, credentials.password)
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -63,7 +54,7 @@ def login(credentials: LoginRequest):
         "access": access_token
     }
 
-# Configurar OpenAPI con seguridad Bearer para Swagger
+# Configuración de Swagger
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -86,8 +77,7 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# Vercel no ejecuta el bloque __main__, usa su propio servidor (uvicorn)
-# pero lo dejamos para que sigas pudiendo ejecutarlo localmente.
+# Iniciar servidor
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
