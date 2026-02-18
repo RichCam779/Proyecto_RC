@@ -1,4 +1,18 @@
+# Virtual environments
 myvenv/
+venv/
+.env
+
+# Python bytecode
 __pycache__/
 *.pyc
-.env
+*.pyo
+*.pyd
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

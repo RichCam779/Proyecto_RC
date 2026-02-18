@@ -12,12 +12,13 @@ router = APIRouter(
 
 user_controller = UserController()
 
+import os
+
 # ---------------------------------------------------------
 # CONFIGURACIÓN DEL MICROSERVICIO (El Puente)
 # ---------------------------------------------------------
-# REEMPLAZA ESTO con la URL exacta de tu proyecto de Node.js en Vercel.
-# Debe terminar en /api/ubicaciones
-NODE_SERVICE_URL = "https://proyecto-rc-jju7.vercel.app/api/ubicaciones" 
+# Se obtiene de variable de entorno en Vercel, o el fallback por defecto.
+NODE_SERVICE_URL = os.getenv("NODE_SERVICE_URL", "https://proyecto-rc-jju7.vercel.app/api/ubicaciones") 
 
 @router.get("/locations")
 def get_external_locations():
