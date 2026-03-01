@@ -2,29 +2,25 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
-// Importar rutas de la arquitectura limpia
-const routes = require('./src/routes');
-
 const app = express();
 
-// 1. Configuración de CORS
+// 1. Configuración Básica
 app.use(cors());
 app.use(express.json());
 
-// 2. Rutas (Conectado a CRUD controllers)
+// 2. Enrutador Principal
+const routes = require('./src/routes');
 app.use('/api', routes);
 
-// 3. (Removido: Endpoint Token de prueba local - Autenticación manejada por NutriScan)
-
-// Endpoint raíz
+// 3. Ruta Base de Comprobación
 app.get('/', (req, res) => {
-  res.send('Servicio de NutriScan Pro funcionando como API Externa con Arquitectura Limpia');
+  res.send('Servicio de Ubicaciones Externo - NutriScan Pro funcionando CORRECTAMENTE');
 });
 
-// Inicializar el servidor
+// 4. Iniciar Servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor API corriendo en puerto ${PORT}`);
+  console.log(`Servidor de Ubicaciones corriendo en puerto ${PORT}`);
 });
 
 module.exports = app;

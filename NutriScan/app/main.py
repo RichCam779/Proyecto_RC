@@ -2,6 +2,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from .routes.user_routes import router as user_router
+from .routes.roles_routes import router as roles_router
+from .routes.modulos_routes import router as modulos_router
+from .routes.telefono_routes import router as telefono_router
+from .routes.perfiles_clinicos_routes import router as perfiles_clinicos_router
+from .routes.alimentos_routes import router as alimentos_router
+from .routes.permisos_roles_routes import router as permisos_roles_router
+from .routes.registro_consumo_routes import router as registro_consumo_router
+from .routes.historial_routes import router as historial_router
+from .routes.historial_chat_routes import router as historial_chat_router
+
 from .utils.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, SimpleTokenResponse
 from .controllers.user_controller import UserController
 from .utils.auth import LoginRequest
@@ -26,8 +36,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Rutas de usuario
+# Integración de todas las Rutas CRUD de la BD
 app.include_router(user_router)
+app.include_router(roles_router)
+app.include_router(modulos_router)
+app.include_router(telefono_router)
+app.include_router(perfiles_clinicos_router)
+app.include_router(alimentos_router)
+app.include_router(permisos_roles_router)
+app.include_router(registro_consumo_router)
+app.include_router(historial_router)
+app.include_router(historial_chat_router)
 
 # Controlador de usuarios
 user_controller = UserController()
