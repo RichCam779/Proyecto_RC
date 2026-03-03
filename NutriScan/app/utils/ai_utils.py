@@ -4,9 +4,14 @@ from ultralytics import YOLO
 import os
 
 class YOLOHandler:
-    def __init__(self, model_path="yolov8n.pt"):
-        # Esto descargará el modelo si no existe
-        self.model = YOLO(model_path)
+    def __init__(self, model_name="yolov8n.pt"):
+        # En ambientes como Vercel o AWS Lambda, solo tenemos permisos de escritura en /tmp
+        tmp_model_path = os.path.join("/tmp", model_name)
+        
+        # Cargamos el modelo YOLO especificando la ruta temporal
+        self.model = YOLO(model_name)
+        # Aseguramos que los pesos se descarguen o usen la carpeta temporal
+        self.model.to('cpu') 
     
     def detect_and_analyze_biotype(self, image_bytes):
         # Convertir bytes a imagen de OpenCV
