@@ -1,4 +1,6 @@
 <script>
+    import { onMount } from "svelte";
+
     // Campos sincronizados con la estructura de la base de datos (usuarios)
     let identificacion = "";
     let nombreCompleto = "";
@@ -10,8 +12,71 @@
     let password = "";
     let confirmPassword = "";
 
+    // Datos del servicio de ubicaciones
+    let ubicacionesTotales = [];
+    let paisesDisponibles = [];
+    let departamentosDisponibles = [];
+    let ciudadesDisponibles = [];
+
+    onMount(async () => {
+        try {
+            // Intentamos conectar con el servicio externo de geografía
+            const response = await fetch(
+                "http://localhost:3000/api/ubicaciones",
+            );
+            if (response.ok) {
+                const result = await response.json();
+                ubicacionesTotales = result.data;
+
+                // Extraer países únicos
+                paisesDisponibles = [
+                    ...new Set(ubicacionesTotales.map((u) => u.pais)),
+                ].sort();
+            }
+        } catch (error) {
+            console.error(
+                "Error al conectar con el servicio de ubicaciones:",
+                error,
+            );
+            // Fallback si el servicio no está corriendo
+            paisesDisponibles = ["Colombia", "México", "Argentina"];
+        }
+    });
+
+    // Reactividad para departamentos cuando cambia el país
+    $: if (pais) {
+        departamentosDisponibles = [
+            ...new Set(
+                ubicacionesTotales
+                    .filter((u) => u.pais === pais)
+                    .map((u) => u.departamento),
+            ),
+        ].sort();
+        departamento = ""; // Resetear selección
+        ciudad = "";
+    }
+
+    // Reactividad para ciudades cuando cambia el departamento
+    $: if (departamento) {
+        ciudadesDisponibles = [
+            ...new Set(
+                ubicacionesTotales
+                    .filter(
+                        (u) =>
+                            u.pais === pais && u.departamento === departamento,
+                    )
+                    .map((u) => u.ciudad),
+            ),
+        ].sort();
+        ciudad = ""; // Resetear selección
+    }
+
     function handleRegistro() {
-        // Aquí iría la lógica de envío a la API
+        if (password !== confirmPassword) {
+            alert("Las contraseñas no coinciden");
+            return;
+        }
+
         console.log("Datos listos para la BD:", {
             identificacion,
             nombreCompleto,
@@ -169,14 +234,19 @@
                                         ><i class="bi bi-geo-alt text-muted"
                                         ></i></span
                                     >
-                                    <input
-                                        type="text"
-                                        class="form-control border-start-0 ps-0"
+                                    <select
+                                        class="form-select border-start-0 ps-0"
                                         id="pais"
                                         bind:value={pais}
-                                        placeholder="País"
                                         required
-                                    />
+                                    >
+                                        <option value="" disabled selected
+                                            >Selecciona País</option
+                                        >
+                                        {#each paisesDisponibles as p}
+                                            <option value={p}>{p}</option>
+                                        {/each}
+                                    </select>
                                 </div>
                             </div>
 
@@ -192,14 +262,20 @@
                                         ><i class="bi bi-map text-muted"
                                         ></i></span
                                     >
-                                    <input
-                                        type="text"
-                                        class="form-control border-start-0 ps-0"
+                                    <select
+                                        class="form-select border-start-0 ps-0"
                                         id="departamento"
                                         bind:value={departamento}
-                                        placeholder="Estado/Depto"
                                         required
-                                    />
+                                        disabled={!pais}
+                                    >
+                                        <option value="" disabled selected
+                                            >Selecciona Depto</option
+                                        >
+                                        {#each departamentosDisponibles as d}
+                                            <option value={d}>{d}</option>
+                                        {/each}
+                                    </select>
                                 </div>
                             </div>
 
@@ -215,14 +291,20 @@
                                         ><i class="bi bi-building text-muted"
                                         ></i></span
                                     >
-                                    <input
-                                        type="text"
-                                        class="form-control border-start-0 ps-0"
+                                    <select
+                                        class="form-select border-start-0 ps-0"
                                         id="ciudad"
                                         bind:value={ciudad}
-                                        placeholder="Ciudad"
                                         required
-                                    />
+                                        disabled={!departamento}
+                                    >
+                                        <option value="" disabled selected
+                                            >Selecciona Ciudad</option
+                                        >
+                                        {#each ciudadesDisponibles as c}
+                                            <option value={c}>{c}</option>
+                                        {/each}
+                                    </select>
                                 </div>
                             </div>
 
