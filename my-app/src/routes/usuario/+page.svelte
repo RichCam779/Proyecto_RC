@@ -13,6 +13,58 @@
         { id: 3, nombre: "Cena", calorias: 0, completado: false },
     ];
 
+    let analizandoComida = false;
+
+    async function handleEscanearComida(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        analizandoComida = true;
+        try {
+            const userId = 11; // ID simulado
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const response = await fetch(
+                `http://localhost:8000/ai/food-recognition/${userId}`,
+                {
+                    method: "POST",
+                    body: formData,
+                },
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+
+                // Añadir a la lista de comidas
+                const nuevaComida = {
+                    id: comidas.length + 1,
+                    nombre: data.alimento_detectado,
+                    calorias: data.calorias,
+                    completado: true,
+                };
+
+                comidas = [...comidas, nuevaComida];
+                caloriasConsumidas += data.calorias;
+                porcentaje = Math.min(
+                    100,
+                    Math.round((caloriasConsumidas / caloriasMeta) * 100),
+                );
+
+                alert(
+                    `¡IA detectó: ${data.alimento_detectado}! +${data.calorias} kcal añadidas.`,
+                );
+            } else {
+                alert("La IA no pudo reconocer el alimento");
+            }
+        } catch (error) {
+            console.error("Error al escanear comida:", error);
+            alert("Error en el servicio de IA");
+        } finally {
+            analizandoComida = false;
+        }
+    }
+
     let chatMensajes = [
         {
             emisor: "ia",
@@ -151,10 +203,34 @@
                         <h5 class="fw-bold text-secondary mb-0">
                             Registro de Comidas
                         </h5>
-                        <button
-                            class="btn btn-sm btn-outline-success rounded-pill px-3"
-                            ><i class="bi bi-plus-lg me-1"></i>Añadir</button
-                        >
+                        <div class="d-flex gap-2">
+                            <input
+                                type="file"
+                                id="inputIA"
+                                class="d-none"
+                                accept="image/*"
+                                on:change={handleEscanearComida}
+                            />
+                            <button
+                                class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                                on:click={() =>
+                                    document.getElementById("inputIA").click()}
+                                disabled={analizandoComida}
+                            >
+                                {#if analizandoComida}
+                                    <span
+                                        class="spinner-border spinner-border-sm"
+                                    ></span>
+                                {:else}
+                                    <i class="bi bi-camera me-1"></i> Scan IA
+                                {/if}
+                            </button>
+                            <button
+                                class="btn btn-sm btn-outline-success rounded-pill px-3"
+                                ><i class="bi bi-plus-lg me-1"
+                                ></i>Añadir</button
+                            >
+                        </div>
                     </div>
                     <div class="card-body p-4">
                         <ul class="list-group list-group-flush border-0">

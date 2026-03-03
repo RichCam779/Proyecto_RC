@@ -17,12 +17,12 @@ class UserController:
             
             query = """
                 INSERT INTO usuarios 
-                (cedula, nombre_completo, email, genero, pais, departamento, ciudad, password_hash, id_rol) 
+                (identificacion, nombre_completo, email, genero, pais, departamento, ciudad, password_hash, id_rol) 
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) 
                 RETURNING id_usuario
             """
             values = (
-                user.cedula, 
+                user.identificacion, 
                 user.nombre_completo, 
                 user.email, 
                 user.genero,
@@ -49,7 +49,7 @@ class UserController:
         except psycopg2.Error as err:
             if conn: conn.rollback()
             if err.pgcode == '23505':
-                raise HTTPException(status_code=400, detail="Error: Ya existe un usuario con esa cédula o email.")
+                raise HTTPException(status_code=400, detail="Error: Ya existe un usuario con esa identificación o email.")
             raise HTTPException(status_code=500, detail=f"Error de base de datos: {str(err)}")
         finally:
             if conn: conn.close()
@@ -64,7 +64,7 @@ class UserController:
             query = """
                 SELECT DISTINCT ON (u.id_usuario) 
                     u.id_usuario, 
-                    u.cedula, 
+                    u.identificacion, 
                     u.nombre_completo, 
                     u.email, 
                     t.numero AS telefono, 
@@ -75,7 +75,7 @@ class UserController:
                     r.nombre_rol, 
                     pc.biotipo, 
                     u.estado, 
-                    u.created_at
+                    u.fecha_creacion
                 FROM usuarios u
                 JOIN roles r ON u.id_rol = r.id_rol
                 LEFT JOIN perfiles_clinicos pc ON u.id_usuario = pc.id_usuario
@@ -89,7 +89,7 @@ class UserController:
             for data in result:
                 content = {
                     'id': data[0], 
-                    'cedula': data[1], 
+                    'identificacion': data[1], 
                     'nombre': data[2],
                     'email': data[3], 
                     'telefono': data[4] if data[4] else "Sin registro",
@@ -100,7 +100,7 @@ class UserController:
                     'rol': data[9], 
                     'biotipo': data[10], 
                     'estado': data[11],
-                    'created_at': data[12]
+                    'fecha_creacion': data[12]
                 }
                 payload.append(content)
             
@@ -122,7 +122,7 @@ class UserController:
                 UPDATE usuarios 
                 SET nombre_completo = %s, email = %s, genero = %s, 
                     pais = %s, departamento = %s, ciudad = %s,
-                    password_hash = %s, id_rol = %s
+                    password_hash = %s, id_rol = %s, fecha_actualizacion = NOW()
                 WHERE id_usuario = %s
             """
             values = (
@@ -145,7 +145,7 @@ class UserController:
                 existing_phone = cursor.fetchone()
                 
                 if existing_phone:
-                    cursor.execute("UPDATE telefono SET numero = %s WHERE id_telefono = %s", (user.telefono, existing_phone[0]))
+                    cursor.execute("UPDATE telefono SET numero = %s, fecha_actualizacion = NOW() WHERE id_telefono = %s", (user.telefono, existing_phone[0]))
                 else:
                     cursor.execute("INSERT INTO telefono (id_usuario, numero, tipo) VALUES (%s, %s, 'Movil')", (user.id, user.telefono))
             
@@ -164,7 +164,7 @@ class UserController:
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = %s", (user_id,))
+            cursor.execute("UPDATE usuarios SET estado = 'Inactivo', fecha_actualizacion = NOW() WHERE id_usuario = %s", (user_id,))
             conn.commit()
             
             if cursor.rowcount == 0:
@@ -185,7 +185,7 @@ class UserController:
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE perfiles_clinicos 
-                SET biotipo = %s, confianza_ia = %s 
+                SET biotipo = %s, confianza_ia = %s, fecha_actualizacion = NOW()
                 WHERE id_usuario = %s
             """, (biotipo, confianza, user_id))
             conn.commit()

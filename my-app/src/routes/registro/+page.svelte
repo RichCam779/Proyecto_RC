@@ -1,4 +1,6 @@
 <script>
+    import { onMount } from "svelte";
+
     // Campos sincronizados con la estructura de la base de datos (usuarios)
     let identificacion = "";
     let nombreCompleto = "";
@@ -10,19 +12,129 @@
     let password = "";
     let confirmPassword = "";
 
-    function handleRegistro() {
-        // Aquí iría la lógica de envío a la API
-        console.log("Datos listos para la BD:", {
-            identificacion,
-            nombreCompleto,
-            email,
-            genero,
-            pais,
-            departamento,
-            ciudad,
-            password,
-        });
-        window.location.href = "/login";
+    // Datos del servicio de ubicaciones
+    let ubicacionesTotales = [];
+    let paisesDisponibles = [];
+    let departamentosDisponibles = [];
+    let ciudadesDisponibles = [];
+
+    onMount(async () => {
+        try {
+            // Intentamos conectar con el servicio externo de geografía
+            const response = await fetch(
+                "http://localhost:3000/api/ubicaciones",
+            );
+            if (response.ok) {
+                const result = await response.json();
+                ubicacionesTotales = result.data;
+
+                // Extraer países únicos
+                paisesDisponibles = [
+                    ...new Set(ubicacionesTotales.map((u) => u.pais)),
+                ].sort();
+            }
+        } catch (error) {
+            console.error(
+                "Error al conectar con el servicio de ubicaciones:",
+                error,
+            );
+            // Fallback si el servicio no está corriendo
+            paisesDisponibles = ["Colombia", "México", "Argentina"];
+        }
+    });
+
+    // Reactividad para departamentos cuando cambia el país
+    $: if (pais) {
+        departamentosDisponibles = [
+            ...new Set(
+                ubicacionesTotales
+                    .filter((u) => u.pais === pais)
+                    .map((u) => u.departamento),
+            ),
+        ].sort();
+        departamento = ""; // Resetear selección
+        ciudad = "";
+    }
+
+    // Reactividad para ciudades cuando cambia el departamento
+    $: if (departamento) {
+        ciudadesDisponibles = [
+            ...new Set(
+                ubicacionesTotales
+                    .filter(
+                        (u) =>
+                            u.pais === pais && u.departamento === departamento,
+                    )
+                    .map((u) => u.ciudad),
+            ),
+        ].sort();
+        ciudad = ""; // Resetear selección
+    }
+
+    let fotoArchivo = null;
+    let analizandoIA = false;
+    let biotipoResultado = "";
+
+    function onFileSelected(e) {
+        fotoArchivo = e.target.files[0];
+    }
+
+    async function handleRegistro() {
+        if (password !== confirmPassword) {
+            alert("Las contraseñas no coinciden");
+            return;
+        }
+
+        analizandoIA = true;
+
+        try {
+            // 1. Crear el usuario (Simulación de POST a /usuarios)
+            // En una app real, aquí harías el fetch a tu API de usuarios
+            const userData = {
+                identificacion,
+                nombre_completo: nombreCompleto,
+                email,
+                genero,
+                pais,
+                departamento,
+                ciudad,
+                password_hash: password, // Debería ser hashed en el server o aquí
+                id_rol: 3, // Paciente
+            };
+
+            // Simulación de éxito y obtención de ID (Ejemplo: ID 11)
+            const userId = 11;
+
+            // 2. Si hay foto, enviarla a la IA para análisis de biótipo
+            if (userId && fotoArchivo) {
+                const formData = new FormData();
+                formData.append("file", fotoArchivo);
+
+                const aiResponse = await fetch(
+                    `http://localhost:8000/ai/biotype/${userId}`,
+                    {
+                        method: "POST",
+                        body: formData,
+                    },
+                );
+
+                if (aiResponse.ok) {
+                    const aiResult = await aiResponse.json();
+                    biotipoResultado = aiResult.biotipo_detectado;
+                    alert(
+                        `¡Registro exitoso! La IA ha determinado que tu biótipo es: ${biotipoResultado}`,
+                    );
+                }
+            }
+
+            console.log("Registro completo:", userData);
+            window.location.href = "/login";
+        } catch (error) {
+            console.error("Error en el registro:", error);
+            alert("Hubo un error al procesar tu solicitud.");
+        } finally {
+            analizandoIA = false;
+        }
     }
 </script>
 
@@ -169,14 +281,19 @@
                                         ><i class="bi bi-geo-alt text-muted"
                                         ></i></span
                                     >
-                                    <input
-                                        type="text"
-                                        class="form-control border-start-0 ps-0"
+                                    <select
+                                        class="form-select border-start-0 ps-0"
                                         id="pais"
                                         bind:value={pais}
-                                        placeholder="País"
                                         required
-                                    />
+                                    >
+                                        <option value="" disabled selected
+                                            >Selecciona País</option
+                                        >
+                                        {#each paisesDisponibles as p}
+                                            <option value={p}>{p}</option>
+                                        {/each}
+                                    </select>
                                 </div>
                             </div>
 
@@ -192,14 +309,20 @@
                                         ><i class="bi bi-map text-muted"
                                         ></i></span
                                     >
-                                    <input
-                                        type="text"
-                                        class="form-control border-start-0 ps-0"
+                                    <select
+                                        class="form-select border-start-0 ps-0"
                                         id="departamento"
                                         bind:value={departamento}
-                                        placeholder="Estado/Depto"
                                         required
-                                    />
+                                        disabled={!pais}
+                                    >
+                                        <option value="" disabled selected
+                                            >Selecciona Depto</option
+                                        >
+                                        {#each departamentosDisponibles as d}
+                                            <option value={d}>{d}</option>
+                                        {/each}
+                                    </select>
                                 </div>
                             </div>
 
@@ -215,14 +338,20 @@
                                         ><i class="bi bi-building text-muted"
                                         ></i></span
                                     >
-                                    <input
-                                        type="text"
-                                        class="form-control border-start-0 ps-0"
+                                    <select
+                                        class="form-select border-start-0 ps-0"
                                         id="ciudad"
                                         bind:value={ciudad}
-                                        placeholder="Ciudad"
                                         required
-                                    />
+                                        disabled={!departamento}
+                                    >
+                                        <option value="" disabled selected
+                                            >Selecciona Ciudad</option
+                                        >
+                                        {#each ciudadesDisponibles as c}
+                                            <option value={c}>{c}</option>
+                                        {/each}
+                                    </select>
                                 </div>
                             </div>
 
@@ -288,6 +417,7 @@
                                         id="fotoPerfil"
                                         class="d-none"
                                         accept="image/*"
+                                        on:change={onFileSelected}
                                         required
                                     />
                                     <label
@@ -295,14 +425,18 @@
                                         class="mb-0 cursor-pointer"
                                     >
                                         <i
-                                            class="bi bi-cloud-arrow-up display-5 text-success"
+                                            class="bi bi-cloud-arrow-up display-5 text-{fotoArchivo
+                                                ? 'primary'
+                                                : 'success'}"
                                         ></i>
                                         <p class="mb-1 fw-bold mt-2">
-                                            Sube tu foto aquí
+                                            {fotoArchivo
+                                                ? fotoArchivo.name
+                                                : "Sube tu foto aquí"}
                                         </p>
                                         <p class="text-muted small mb-0">
                                             La IA analizará tu biotipo mediante
-                                            visión por computadora.
+                                            visión por computadora (YOLOv8).
                                         </p>
                                     </label>
                                 </div>
@@ -346,8 +480,16 @@
                                 <button
                                     type="submit"
                                     class="btn btn-success w-100 py-3 fw-bold rounded-3 shadow-sm btn-register"
+                                    disabled={analizandoIA}
                                 >
-                                    Finalizar Registro y Crear Cuenta
+                                    {#if analizandoIA}
+                                        <span
+                                            class="spinner-border spinner-border-sm me-2"
+                                        ></span>
+                                        Analizando Biotipo con IA...
+                                    {:else}
+                                        Finalizar Registro y Crear Cuenta
+                                    {/if}
                                 </button>
                             </div>
                         </div>

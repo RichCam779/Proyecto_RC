@@ -53,10 +53,10 @@ class Registro_consumoController:
             cursor = conn.cursor()
             
             # Aseguramos de insertar la fecha actual
-            if 'crear' not in data:
-                data['crear'] = datetime.now()
-            if 'actualizar' not in data:
-                data['actualizar'] = datetime.now()
+            if 'fecha_creacion' not in data:
+                data['fecha_creacion'] = datetime.now()
+            if 'fecha_actualizacion' not in data:
+                data['fecha_actualizacion'] = datetime.now()
                 
             keys = list(data.keys())
             values = tuple(data.values())
@@ -85,7 +85,7 @@ class Registro_consumoController:
             cursor = conn.cursor()
             
             # Forzar actualización de fecha
-            data['actualizar'] = datetime.now()
+            data['fecha_actualizacion'] = datetime.now()
             
             keys = list(data.keys())
             values = list(data.values())
@@ -120,7 +120,7 @@ class Registro_consumoController:
             has_estado = cursor.fetchone() is not None
             
             if has_estado:
-                cursor.execute(f"UPDATE registro_consumo SET estado = 'Inactivo', actualizar = NOW() WHERE id_registro = %s", (item_id,))
+                cursor.execute(f"UPDATE registro_consumo SET estado = 'Inactivo', fecha_actualizacion = NOW() WHERE id_registro = %s", (item_id,))
             else:
                 cursor.execute(f"DELETE FROM registro_consumo WHERE id_registro = %s", (item_id,))
                 

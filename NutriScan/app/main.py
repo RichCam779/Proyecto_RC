@@ -11,6 +11,7 @@ from .routes.permisos_roles_routes import router as permisos_roles_router
 from .routes.registro_consumo_routes import router as registro_consumo_router
 from .routes.historial_routes import router as historial_router
 from .routes.historial_chat_routes import router as historial_chat_router
+from .routes.ai_routes import router as ai_router
 
 from .utils.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, SimpleTokenResponse
 from .controllers.user_controller import UserController
@@ -47,6 +48,7 @@ app.include_router(permisos_roles_router)
 app.include_router(registro_consumo_router)
 app.include_router(historial_router)
 app.include_router(historial_chat_router)
+app.include_router(ai_router)
 
 # Controlador de usuarios
 user_controller = UserController()
