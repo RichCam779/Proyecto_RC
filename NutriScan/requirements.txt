@@ -8,6 +8,6 @@ python-dotenv
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
-ultralytics
+onnxruntime
 opencv-python-headless
 numpy
