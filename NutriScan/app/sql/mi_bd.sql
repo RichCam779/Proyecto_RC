@@ -204,7 +204,27 @@ INSERT INTO alimentos (nombre, categoria, calorias, proteinas_g, carbohidratos_g
 ('Aguacate', 'Grasa', 160, 2.0, 9.0, 15.0, TRUE), 
 ('Leche Entera', 'Lacteo', 42, 3.4, 5.0, 1.0, TRUE),
 ('Pan Integral', 'Cereal', 265, 9.0, 49.0, 3.0, TRUE), 
-('Almendras', 'Fruto Seco', 579, 21.0, 22.0, 50.0, TRUE);
+('Almendras', 'Fruto Seco', 579, 21.0, 22.0, 50.0, TRUE),
+('Brocoli', 'Vegetal', 34, 2.8, 7.0, 0.4, TRUE),
+('Espinaca', 'Vegetal', 23, 2.9, 3.6, 0.4, TRUE),
+('Platano', 'Fruta', 89, 1.1, 23.0, 0.3, TRUE),
+('Lentejas', 'Legumbre', 116, 9.0, 20.0, 0.4, TRUE),
+('Garbanzos', 'Legumbre', 164, 8.9, 27.0, 2.6, TRUE),
+('Atun en Agua', 'Pescado', 116, 26.0, 0.0, 1.0, TRUE),
+('Yogur Griego', 'Lacteo', 59, 10.0, 3.6, 0.4, TRUE),
+('Quinoa', 'Pseudocereal', 120, 4.4, 21.3, 1.9, TRUE),
+('Pavo (Pechuga)', 'Proteina', 135, 30.0, 0.0, 1.0, TRUE),
+('Nueces', 'Fruto Seco', 654, 15.0, 14.0, 65.0, TRUE),
+('Papaya', 'Fruta', 43, 0.5, 11.0, 0.3, TRUE),
+('Zanahoria', 'Vegetal', 41, 0.9, 10.0, 0.2, TRUE),
+('Carne de Res Magra', 'Proteina', 250, 26.0, 0.0, 15.0, TRUE),
+('Queso Campesino', 'Lacteo', 200, 15.0, 3.0, 14.0, TRUE),
+('Pasta Integral', 'Carbohidrato', 124, 5.3, 26.5, 0.5, TRUE),
+('Tofu', 'Proteina Vegetal', 76, 8.0, 1.9, 4.8, TRUE),
+('Chia (Semillas)', 'Semilla', 486, 16.5, 42.1, 30.7, TRUE),
+('Coco (Agua)', 'Bebida', 19, 0.7, 3.7, 0.2, TRUE),
+('Te Verde', 'Bebida', 1, 0.2, 0.0, 0.0, TRUE),
+('Aceite de Oliva', 'Grasa', 884, 0.0, 0.0, 100.0, TRUE);
 
 -- 3.7 PERMISOS ROLES
 INSERT INTO permisos_roles (id_rol, id_modulo, puede_leer, puede_escribir, puede_editar) VALUES
