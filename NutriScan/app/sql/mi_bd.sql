@@ -80,38 +80,6 @@ CREATE TABLE perfiles_clinicos (
 );
 CREATE TRIGGER trigger_update_perfiles BEFORE UPDATE ON perfiles_clinicos FOR EACH ROW EXECUTE FUNCTION actualizar_fecha_modificacion();
 
--- TABLA PAISES
-CREATE TABLE paises (
-    id_pais SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL UNIQUE,
-    estado VARCHAR(20) DEFAULT 'Activo',
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TRIGGER trigger_update_paises BEFORE UPDATE ON paises FOR EACH ROW EXECUTE FUNCTION actualizar_fecha_modificacion();
-
--- TABLA DEPARTAMENTOS
-CREATE TABLE departamentos (
-    id_departamento SERIAL PRIMARY KEY,
-    id_pais INT NOT NULL REFERENCES paises(id_pais) ON DELETE CASCADE,
-    nombre VARCHAR(100) NOT NULL,
-    estado VARCHAR(20) DEFAULT 'Activo',
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TRIGGER trigger_update_departamentos BEFORE UPDATE ON departamentos FOR EACH ROW EXECUTE FUNCTION actualizar_fecha_modificacion();
-
--- TABLA CIUDADES
-CREATE TABLE ciudades (
-    id_ciudad SERIAL PRIMARY KEY,
-    id_departamento INT NOT NULL REFERENCES departamentos(id_departamento) ON DELETE CASCADE,
-    nombre VARCHAR(100) NOT NULL,
-    estado VARCHAR(20) DEFAULT 'Activo',
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TRIGGER trigger_update_ciudades BEFORE UPDATE ON ciudades FOR EACH ROW EXECUTE FUNCTION actualizar_fecha_modificacion();
-
 -- TABLA ALIMENTOS
 CREATE TABLE alimentos (
     id_alimento SERIAL PRIMARY KEY,
@@ -236,58 +204,24 @@ INSERT INTO alimentos (nombre, categoria, calorias, proteinas_g, carbohidratos_g
 ('Aguacate', 'Grasa', 160, 2.0, 9.0, 15.0, TRUE), 
 ('Leche Entera', 'Lacteo', 42, 3.4, 5.0, 1.0, TRUE),
 ('Pan Integral', 'Cereal', 265, 9.0, 49.0, 3.0, TRUE), 
-('Almendras', 'Fruto Seco', 579, 21.0, 22.0, 50.0, TRUE),
-('Brocoli', 'Vegetal', 34, 2.8, 7.0, 0.4, TRUE),
-('Espinaca', 'Vegetal', 23, 2.9, 3.6, 0.4, TRUE),
-('Platano', 'Fruta', 89, 1.1, 23.0, 0.3, TRUE),
-('Lentejas', 'Legumbre', 116, 9.0, 20.0, 0.4, TRUE),
-('Garbanzos', 'Legumbre', 164, 8.9, 27.0, 2.6, TRUE),
-('Atun en Agua', 'Pescado', 116, 26.0, 0.0, 1.0, TRUE),
-('Yogur Griego', 'Lacteo', 59, 10.0, 3.6, 0.4, TRUE),
-('Quinoa', 'Pseudocereal', 120, 4.4, 21.3, 1.9, TRUE),
-('Pavo (Pechuga)', 'Proteina', 135, 30.0, 0.0, 1.0, TRUE),
-('Nueces', 'Fruto Seco', 654, 15.0, 14.0, 65.0, TRUE),
-('Papaya', 'Fruta', 43, 0.5, 11.0, 0.3, TRUE),
-('Zanahoria', 'Vegetal', 41, 0.9, 10.0, 0.2, TRUE),
-('Carne de Res Magra', 'Proteina', 250, 26.0, 0.0, 15.0, TRUE),
-('Queso Campesino', 'Lacteo', 200, 15.0, 3.0, 14.0, TRUE),
-('Pasta Integral', 'Carbohidrato', 124, 5.3, 26.5, 0.5, TRUE),
-('Tofu', 'Proteina Vegetal', 76, 8.0, 1.9, 4.8, TRUE),
-('Chia (Semillas)', 'Semilla', 486, 16.5, 42.1, 30.7, TRUE),
-('Coco (Agua)', 'Bebida', 19, 0.7, 3.7, 0.2, TRUE),
-('Te Verde', 'Bebida', 1, 0.2, 0.0, 0.0, TRUE),
-('Aceite de Oliva', 'Grasa', 884, 0.0, 0.0, 100.0, TRUE);
+('Almendras', 'Fruto Seco', 579, 21.0, 22.0, 50.0, TRUE);
 
--- 3.7 PAISES, DEPARTAMENTOS Y CIUDADES
-INSERT INTO paises (nombre) VALUES 
-('Colombia'), ('Mexico'), ('Argentina'), ('Chile'), ('Peru');
-
-INSERT INTO departamentos (id_pais, nombre) VALUES 
-(1, 'Bogota'), (1, 'Antioquia'), (1, 'Valle del Cauca'), (1, 'Atlantico'),
-(2, 'Ciudad de Mexico'), (2, 'Jalisco'), (2, 'Nuevo Leon'),
-(3, 'Buenos Aires'), (3, 'Cordoba'), (3, 'Santa Fe');
-
-INSERT INTO ciudades (id_departamento, nombre) VALUES 
-(1, 'Bogota'), (2, 'Medellin'), (2, 'Envigado'), (3, 'Cali'), (3, 'Palmira'), (4, 'Barranquilla'),
-(5, 'CDMX'), (6, 'Guadalajara'), (7, 'Monterrey'),
-(8, 'Buenos Aires'), (9, 'Cordoba'), (10, 'Rosario');
-
--- 3.8 PERMISOS ROLES
+-- 3.7 PERMISOS ROLES
 INSERT INTO permisos_roles (id_rol, id_modulo, puede_leer, puede_escribir, puede_editar) VALUES
 (1, 1, TRUE, TRUE, TRUE), (1, 2, TRUE, TRUE, TRUE), (1, 3, TRUE, TRUE, TRUE),
 (2, 3, TRUE, TRUE, TRUE), (2, 9, TRUE, TRUE, TRUE), (2, 8, TRUE, TRUE, FALSE),
 (3, 1, TRUE, FALSE, FALSE), (3, 8, TRUE, TRUE, FALSE), (3, 4, TRUE, FALSE, FALSE), (3, 9, TRUE, FALSE, FALSE);
 
--- 3.9 REGISTRO CONSUMO
+-- 3.8 REGISTRO CONSUMO
 INSERT INTO registro_consumo (id_usuario, id_alimento, cantidad_gramos) VALUES
 (3, 1, 200.0), (3, 2, 150.0), (4, 4, 100.0), (4, 5, 50.0), (7, 3, 2.0),
 (8, 6, 180.0), (9, 7, 50.0), (3, 10, 30.0), (4, 8, 200.0), (10, 9, 60.0);
 
--- 3.10 HISTORIAL SESION
+-- 3.9 HISTORIAL SESION
 INSERT INTO historial (id_usuario) VALUES
 (3), (4), (5), (6), (7), (8), (9), (10);
 
--- 3.11 HISTORIAL CHAT IA
+-- 3.10 HISTORIAL CHAT IA
 INSERT INTO historial_chat (id_usuario, id_historial, pregunta_usuario, respuesta_ia) VALUES
 (3, 1, '¿Cuántas calorías tiene el pollo?', 'El pollo tiene aprox 165 cal por 100g.'),
 (3, 1, 'Quiero bajar de peso', 'Debes mantener un déficit calórico.'),
