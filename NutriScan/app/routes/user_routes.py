@@ -61,9 +61,9 @@ async def update_user(user_id: int, user: User, request: Request):
 
 # Desactivar usuario
 @router.delete("/{user_id}", response_model=dict)
-async def deactivate_user(user_id: int, request: Request):
+async def deactivate(user_id: int, request: Request):
     current_user = await verify_token(request)
-    return user_controller.deactivate_user(user_id)
+    return user_controller.deactivate(user_id)
 
 # Actualizar biotipo
 @router.put("/{user_id}/biotype")

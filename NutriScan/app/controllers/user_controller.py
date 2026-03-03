@@ -158,8 +158,8 @@ class UserController:
         finally:
             if conn: conn.close()
 
-    # Desactivar cuenta de usuario
-    def deactivate_user(self, user_id: int):
+    # Desactivar cuenta de usuario (Soft Delete)
+    def deactivate(self, user_id: int):
         conn = None
         try:
             conn = get_db_connection()
@@ -170,7 +170,7 @@ class UserController:
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Usuario no encontrado")
                 
-            return {"resultado": "Cuenta de usuario desactivada correctamente"}
+            return {"resultado": "Usuario desactivado con éxito (Soft Delete)"}
         except psycopg2.Error as err:
             if conn: conn.rollback()
             raise HTTPException(status_code=500, detail=str(err))
