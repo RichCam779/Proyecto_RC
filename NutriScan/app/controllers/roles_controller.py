@@ -53,10 +53,10 @@ class RolesController:
             cursor = conn.cursor()
             
             # Aseguramos de insertar la fecha actual
-            if 'crear' not in data:
-                data['crear'] = datetime.now()
-            if 'actualizar' not in data:
-                data['actualizar'] = datetime.now()
+            if 'fecha_creacion' not in data:
+                data['fecha_creacion'] = datetime.now()
+            if 'fecha_actualizacion' not in data:
+                data['fecha_actualizacion'] = datetime.now()
                 
             keys = list(data.keys())
             values = tuple(data.values())
@@ -85,7 +85,7 @@ class RolesController:
             cursor = conn.cursor()
             
             # Forzar actualización de fecha
-            data['actualizar'] = datetime.now()
+            data['fecha_actualizacion'] = datetime.now()
             
             keys = list(data.keys())
             values = list(data.values())
@@ -116,19 +116,14 @@ class RolesController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='roles' AND column_name='estado'")
-            has_estado = cursor.fetchone() is not None
-            
-            if has_estado:
-                cursor.execute(f"UPDATE roles SET estado = 'Inactivo', actualizar = NOW() WHERE id_rol = %s", (item_id,))
-            else:
-                cursor.execute(f"DELETE FROM roles WHERE id_rol = %s", (item_id,))
+            # Aplicar Soft Delete (Estado = 'Inactivo')
+            cursor.execute(f"UPDATE roles SET estado = 'Inactivo', fecha_actualizacion = NOW() WHERE id_rol = %s", (item_id,))
                 
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="No encontrado")
                 
             conn.commit()
-            return {"resultado": "Eliminado o desactivado con éxito"}
+            return {"resultado": "Desactivado con éxito (Soft Delete)"}
         except psycopg2.Error as err:
             if conn: conn.rollback()
             raise HTTPException(status_code=500, detail=str(err))

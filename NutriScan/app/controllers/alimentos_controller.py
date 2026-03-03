@@ -116,19 +116,14 @@ class AlimentosController:
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='alimentos' AND column_name='estado'")
-            has_estado = cursor.fetchone() is not None
-            
-            if has_estado:
-                cursor.execute(f"UPDATE alimentos SET estado = 'Inactivo', fecha_actualizacion = NOW() WHERE id_alimento = %s", (item_id,))
-            else:
-                cursor.execute(f"DELETE FROM alimentos WHERE id_alimento = %s", (item_id,))
+            # Aplicar Soft Delete (Estado = 'Inactivo')
+            cursor.execute(f"UPDATE alimentos SET estado = 'Inactivo', fecha_actualizacion = NOW() WHERE id_alimento = %s", (item_id,))
                 
             if cursor.rowcount == 0:
                 raise HTTPException(status_code=404, detail="No encontrado")
                 
             conn.commit()
-            return {"resultado": "Eliminado o desactivado con éxito"}
+            return {"resultado": "Desactivado con éxito (Soft Delete)"}
         except psycopg2.Error as err:
             if conn: conn.rollback()
             raise HTTPException(status_code=500, detail=str(err))
