@@ -110,7 +110,7 @@ class Historial_chatController:
         finally:
             if conn: conn.close()
 
-    def delete(self, item_id: int):
+    def deactivate(self, item_id: int):
         conn = None
         try:
             conn = get_db_connection()

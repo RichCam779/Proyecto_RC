@@ -31,7 +31,7 @@ async def update(item_id: int, data: RolesUpdate, request: Request):
     await verify_token(request)
     return controller.update(item_id, data.data)
 
-@router.delete("/{item_id}")
-async def delete(item_id: int, request: Request):
+@router.delete("/{item_id}") # Se mantiene el método HTTP DELETE para la API, pero llama a deactivate
+async def deactivate(item_id: int, request: Request):
     await verify_token(request)
-    return controller.delete(item_id)
+    return controller.deactivate(item_id)

@@ -145,7 +145,7 @@ class {name.capitalize()}Controller:
         finally:
             if conn: conn.close()
 
-    def delete(self, item_id: int):
+    def deactivate(self, item_id: int):
         conn = None
         try:
             conn = get_db_connection()
@@ -202,10 +202,10 @@ async def update(item_id: int, data: {name.capitalize()}Update, request: Request
     await verify_token(request)
     return controller.update(item_id, data.data)
 
-@router.delete("/{{item_id}}")
-async def delete(item_id: int, request: Request):
+@router.delete("/{{item_id}}") # Se mantiene el método HTTP DELETE para la API, pero llama a deactivate
+async def deactivate(item_id: int, request: Request):
     await verify_token(request)
-    return controller.delete(item_id)
+    return controller.deactivate(item_id)
 """
     with open(os.path.join(base_dir, f"routes/{name}_routes.py"), "w", encoding="utf-8") as f:
         f.write(route_code)
