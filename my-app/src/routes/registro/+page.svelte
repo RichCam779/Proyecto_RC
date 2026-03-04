@@ -138,7 +138,6 @@
             analizandoIA = false;
         }
     }
-    }
 </script>
 
 <svelte:head>
